@@ -1,0 +1,2007 @@
+-- ======================================
+-- X I E H U B  - LETTER FADE (X FIRST)
+-- ======================================
+
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "XieHubIntro"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = CoreGui
+
+local holder = Instance.new("Frame", gui)
+holder.AnchorPoint = Vector2.new(0.5, 0.5)
+holder.Position = UDim2.fromScale(0.5, 0.5)
+holder.Size = UDim2.fromScale(0.4, 0.15)
+holder.BackgroundTransparency = 1
+
+local text = "XieHub"
+local letters = {}
+
+-- BUAT LABEL PER HURUF (URUT NORMAL)
+for i = 1, #text do
+    local char = text:sub(i, i)
+
+    local lbl = Instance.new("TextLabel")
+    lbl.BackgroundTransparency = 1
+    lbl.Text = char
+    lbl.TextTransparency = 1
+    lbl.TextStrokeTransparency = 1
+    lbl.TextColor3 = Color3.fromRGB(190, 130, 255)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextScaled = true
+    lbl.Size = UDim2.fromScale(0.12, 1)
+    lbl.Parent = holder
+
+    -- GLOW UNGU
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(180, 100, 255)
+    stroke.Thickness = 2
+    stroke.Transparency = 1
+    stroke.Parent = lbl
+
+    table.insert(letters, lbl)
+end
+
+-- POSISI RAPIH (TENGAH)
+task.wait()
+for i, lbl in ipairs(letters) do
+    lbl.Position = UDim2.fromScale(
+        0.5 - (#letters * 0.12) / 2 + (i - 1) * 0.12,
+        0
+    )
+end
+
+-- ANIMASI: X → i → e → H → u → b
+for _, lbl in ipairs(letters) do
+    TweenService:Create(lbl, TweenInfo.new(
+        0.35,
+        Enum.EasingStyle.Quad,
+        Enum.EasingDirection.Out
+    ), {
+        TextTransparency = 0,
+        TextStrokeTransparency = 0.6
+    }):Play()
+
+    local stroke = lbl:FindFirstChildOfClass("UIStroke")
+    if stroke then
+        TweenService:Create(stroke, TweenInfo.new(0.35), {
+            Transparency = 0.3
+        }):Play()
+    end
+
+    task.wait(0.09)
+end
+
+task.wait(0.9)
+
+-- FADE OUT SEMUA
+for _, lbl in ipairs(letters) do
+    TweenService:Create(lbl, TweenInfo.new(0.35), {
+        TextTransparency = 1,
+        TextStrokeTransparency = 1
+    }):Play()
+end
+
+task.wait(0.4)
+gui:Destroy()
+
+-- LOAD KAVO UI
+local Library = loadstring(game:HttpGetAsync(
+    "https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"
+))()
+local Window = Library.CreateLib("Dixxie Hub", "DarkTheme")
+
+-- ======================================
+-- SERVICES
+-- ======================================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService") -- 🔧 WAJIB
+local player = Players.LocalPlayer
+
+-- ======================================
+-- GET KAVO MAIN FRAME (WAJIB)
+-- ======================================
+task.wait(0.5)
+
+local KavoFrame
+for _, gui in ipairs(game.CoreGui:GetChildren()) do
+    if gui:IsA("ScreenGui") then
+        for _, v in ipairs(gui:GetDescendants()) do
+            if v:IsA("Frame") and v.Name == "Main" then
+                KavoFrame = v
+                break
+            end
+        end
+    end
+end
+
+if not KavoFrame then
+    warn("❌ Kavo Main Frame not found")
+    return
+end
+
+-- ======================================
+-- PURPLE OUTLINE KAVO UI
+-- ======================================
+do
+    local old = KavoFrame:FindFirstChild("XieHubOutline")
+    if old then old:Destroy() end
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Name = "XieHubOutline"
+    stroke.Color = Color3.fromRGB(160, 90, 220)
+    stroke.Thickness = 2
+    stroke.Transparency = 0.2
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = KavoFrame
+
+    if not KavoFrame:FindFirstChildOfClass("UICorner") then
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 10)
+        corner.Parent = KavoFrame
+    end
+end
+
+-- ======================================
+-- HEADER KAVO UI - DARK PURPLE (FIXED)
+-- ======================================
+task.wait(0.2)
+
+for _, v in ipairs(KavoFrame:GetDescendants()) do
+    if v:IsA("TextLabel") and v.Text == "Dixxie Hub" then
+        v.Font = Enum.Font.Montserrat
+        v.TextTransparency = 0
+        v.TextColor3 = Color3.fromRGB(65, 30, 105)
+
+        local s = v:FindFirstChildOfClass("UIStroke")
+        if s then s:Destroy() end
+        break
+    end
+end
+
+-- ======================================
+-- SECTION BAR (ESP / AUTO) → DARK PURPLE
+-- ======================================
+
+local SECTION_BG   = Color3.fromRGB(45, 20, 70)   -- dark purple
+local SECTION_TEXT = Color3.fromRGB(210, 170, 255)
+
+task.spawn(function()
+    while task.wait(0.4) do
+        if not KavoFrame or not KavoFrame.Parent then break end
+
+        for _, v in ipairs(KavoFrame:GetDescendants()) do
+            -- JUDUL SECTION (ESP, AUTO, dll)
+            if v:IsA("TextLabel") then
+                -- ciri section bar: text besar + parent Frame abu-abu
+                local p = v.Parent
+                if p and p:IsA("Frame")
+                and p.BackgroundColor3.R > 60 -- filter bar abu
+                and v.TextSize >= 14 then
+
+                    -- WARNA BAR
+                    p.BackgroundColor3 = SECTION_BG
+                    p.BackgroundTransparency = 0
+
+                    -- WARNA TEKS
+                    v.TextColor3 = SECTION_TEXT
+                    v.Font = Enum.Font.Montserrat
+
+                    -- HILANGKAN STROKE LAMA
+                    local s = p:FindFirstChildOfClass("UIStroke")
+                    if s then s:Destroy() end
+                end
+            end
+        end
+    end
+end)
+
+-- ======================================
+-- FLOATING ICON + MINIMIZE KAVO UI (FINAL CLEAN)
+-- ======================================
+
+local CoreGui = game:GetService("CoreGui")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local FloatGui = Instance.new("ScreenGui")
+FloatGui.Name = "XieHub_FloatingIcon"
+FloatGui.ResetOnSpawn = false
+FloatGui.Parent = CoreGui
+
+local FloatBtn = Instance.new("ImageButton")
+FloatBtn.Size = UDim2.fromOffset(56, 56)
+FloatBtn.Position = UDim2.fromScale(0.12, 0.5)
+FloatBtn.BackgroundColor3 = Color3.fromRGB(40, 30, 60)
+FloatBtn.BorderSizePixel = 0
+FloatBtn.Image = "rbxassetid://139137924883238"
+FloatBtn.ImageColor3 = Color3.fromRGB(200, 150, 255)
+FloatBtn.ZIndex = 999
+FloatBtn.Parent = FloatGui
+
+Instance.new("UICorner", FloatBtn).CornerRadius = UDim.new(1, 0)
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(180, 120, 255)
+stroke.Thickness = 2
+stroke.Transparency = 0.25
+stroke.Parent = FloatBtn
+
+-- Hover
+FloatBtn.MouseEnter:Connect(function()
+    TweenService:Create(FloatBtn, TweenInfo.new(0.15), {
+        Size = UDim2.fromOffset(60, 60)
+    }):Play()
+end)
+
+FloatBtn.MouseLeave:Connect(function()
+    TweenService:Create(FloatBtn, TweenInfo.new(0.15), {
+        Size = UDim2.fromOffset(56, 56)
+    }):Play()
+end)
+
+-- Drag
+local dragging, dragStart, startPos
+FloatBtn.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = i.Position
+        startPos = FloatBtn.Position
+        i.Changed:Connect(function()
+            if i.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UIS.InputChanged:Connect(function(i)
+    if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+        local d = i.Position - dragStart
+        FloatBtn.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + d.X,
+            startPos.Y.Scale, startPos.Y.Offset + d.Y
+        )
+    end
+end)
+
+-- ================= MINIMIZE / RESTORE =================
+local minimized = false
+task.wait(0.2)
+local originalSize = KavoFrame.Size
+
+local function minimize()
+    minimized = true
+    TweenService:Create(KavoFrame, TweenInfo.new(0.25), {
+        Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 0)
+    }):Play()
+
+    task.delay(0.25, function()
+        if minimized then
+            KavoFrame.Visible = false
+        end
+    end)
+end
+
+local function restore()
+    minimized = false
+    KavoFrame.Visible = true
+    KavoFrame.Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 0)
+
+    TweenService:Create(KavoFrame, TweenInfo.new(0.25), {
+        Size = originalSize
+    }):Play()
+end
+
+FloatBtn.MouseButton1Click:Connect(function()
+    if minimized then
+        restore()
+    else
+        minimize()
+    end
+end)
+
+-- AUTO REMOVE FLOATING SAAT KAVO CLOSE
+task.spawn(function()
+    while task.wait(0.4) do
+        if not KavoFrame
+        or not KavoFrame.Parent
+        or not KavoFrame:IsDescendantOf(CoreGui) then
+            FloatGui:Destroy()
+            break
+        end
+    end
+end)
+
+-- ======================================
+-- PLAYER TAB
+-- ======================================
+local PlayerTab = Window:NewTab("Player")
+local PlayerSection = PlayerTab:NewSection("Movement")
+
+local BASE_SPEED, speedMultiplier = 16, 1
+local BASE_JUMP, jumpMultiplier = 50, 1
+local flying, flySpeed = false, 60
+local bodyGyro, bodyVelocity, flyConn
+
+-- WALKSPEED
+PlayerSection:NewSlider("WalkSpeed", "Speed x", 10, 1, function(v)
+    speedMultiplier = v
+end)
+
+-- JUMP
+PlayerSection:NewSlider("Jump Power", "Jump x", 10, 1, function(v)
+    jumpMultiplier = v
+end)
+
+-- APPLY SPEED & JUMP (1 LOOP SAJA – RINGAN)
+RunService.Heartbeat:Connect(function()
+    local char = player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.WalkSpeed = BASE_SPEED * speedMultiplier
+        hum.JumpPower = BASE_JUMP * jumpMultiplier
+    end
+end)
+
+-- FLY
+local function startFly()
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    bodyGyro = Instance.new("BodyGyro", hrp)
+    bodyGyro.P = 90000
+    bodyGyro.MaxTorque = Vector3.new(9e9,9e9,9e9)
+
+    bodyVelocity = Instance.new("BodyVelocity", hrp)
+    bodyVelocity.MaxForce = Vector3.new(9e9,9e9,9e9)
+
+    flyConn = RunService.RenderStepped:Connect(function()
+        local cam = workspace.CurrentCamera
+        bodyGyro.CFrame = cam.CFrame
+
+        local dir = Vector3.zero
+        if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.yAxis end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then dir -= Vector3.yAxis end
+
+        bodyVelocity.Velocity = dir.Magnitude > 0 and dir.Unit * flySpeed or Vector3.zero
+    end)
+end
+
+local function stopFly()
+    if flyConn then flyConn:Disconnect() end
+    if bodyGyro then bodyGyro:Destroy() end
+    if bodyVelocity then bodyVelocity:Destroy() end
+end
+
+PlayerSection:NewButton("Fly", "Toggle Fly", function()
+    flying = not flying
+    if flying then startFly() else stopFly() end
+end)
+
+PlayerSection:NewSlider("Fly Speed", "Fly Speed x", 100, 10, function(v)
+    flySpeed = v
+end)
+
+-- NOCLIP
+local noclip = false
+RunService.Stepped:Connect(function()
+    if not noclip then return end
+    local char = player.Character
+    if char then
+        for _, v in ipairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
+    end
+end)
+
+PlayerSection:NewButton("NoClip", "Toggle NoClip", function()
+    noclip = not noclip
+end)
+
+-- ======================================
+-- MAIN TAB (ESP MM2)
+-- ======================================
+local MainTab = Window:NewTab("Main")
+local MainSection = MainTab:NewSection("ESP")
+
+local espEnabled = false
+local espCache = {}
+
+local function createESP(char)
+    if not char or char:FindFirstChild("DixxieESP") then return end
+
+    local h = Instance.new("Highlight")
+    h.Name = "DixxieESP"
+    h.FillTransparency = 0.5
+    h.OutlineTransparency = 0
+    h.Parent = char
+end
+
+local function removeESP(plr)
+    if espCache[plr] then
+        espCache[plr] = nil
+    end
+    if plr.Character then
+        local h = plr.Character:FindFirstChild("DixxieESP")
+        if h then h:Destroy() end
+    end
+end
+
+local function applyESP(plr)
+    if plr == player then return end
+    if not espEnabled then return end
+
+    if plr.Character then
+        createESP(plr.Character)
+    end
+
+    -- AUTO UPDATE SAAT RESPAWN / ROUND BARU
+    plr.CharacterAdded:Connect(function(char)
+        task.wait(0.2)
+        if espEnabled then
+            createESP(char)
+        end
+    end)
+
+    espCache[plr] = true
+end
+
+local function clearESP()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        removeESP(plr)
+    end
+    table.clear(espCache)
+end
+
+-- TOGGLE ESP
+MainSection:NewToggle("ESP Player", "MM2 Player ESP (Auto Update)", function(state)
+    espEnabled = state
+
+    if state then
+        for _, plr in ipairs(Players:GetPlayers()) do
+            applyESP(plr)
+        end
+    else
+        clearESP()
+    end
+end)
+
+-- PLAYER JOIN / LEAVE AUTO HANDLE
+Players.PlayerAdded:Connect(function(plr)
+    if espEnabled then
+        applyESP(plr)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    removeESP(plr)
+end)
+
+-- UPDATE WARNA ROLE (REALTIME)
+RunService.Heartbeat:Connect(function()
+    if not espEnabled then return end
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character then
+            local h = plr.Character:FindFirstChild("DixxieESP")
+            if not h then continue end
+
+            -- 🔴 MURDER
+            if plr.Backpack:FindFirstChild("Knife")
+            or plr.Character:FindFirstChild("Knife") then
+                h.FillColor = Color3.fromRGB(255, 0, 0)
+                h.OutlineColor = Color3.fromRGB(255, 0, 0)
+
+            -- 🔵 SHERIFF
+            elseif plr.Backpack:FindFirstChild("Gun")
+            or plr.Character:FindFirstChild("Gun") then
+                h.FillColor = Color3.fromRGB(0, 120, 255)
+                h.OutlineColor = Color3.fromRGB(0, 120, 255)
+
+            -- 🟢 INNOCENT
+            else
+                h.FillColor = Color3.fromRGB(0, 255, 0)
+                h.OutlineColor = Color3.fromRGB(0, 255, 0)
+            end
+        end
+    end
+end)
+
+-- =====================================
+-- AUTO AIM SHERIFF (HOLD GUN ONLY)
+-- ======================================
+local MainSection = MainTab:NewSection("AIM")
+
+local autoAimSheriff = false
+
+MainSection:NewToggle(
+    "Auto Aim Sheriff",
+    "Auto aim saat memegang pistol",
+    function(state)
+        autoAimSheriff = state
+    end
+)
+
+local Camera = workspace.CurrentCamera
+
+local function isHoldingGun()
+    return (player.Character and player.Character:FindFirstChild("Gun"))
+end
+
+local function getMurderer()
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character then
+            if plr.Character:FindFirstChild("Knife") then
+                return plr
+            end
+        end
+    end
+end
+
+-- ======================================
+-- MM2 MURDER LOCK AIMBOT (RIGHT CLICK)
+-- ======================================
+
+local Camera = workspace.CurrentCamera
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+local Holding = false
+
+-- =========================
+-- CONFIG (JANGAN DIUBAH)
+-- =========================
+_G.AimbotEnabled = true
+_G.TeamCheck = false
+_G.AimPart = "UpperTorso" -- ganti "HumanoidRootPart" kalau mau
+_G.Sensitivity = 0        -- 0 = instant lock
+
+-- =========================
+-- DETEKSI MURDER (MM2 FIX)
+-- =========================
+local function IsMurderer(plr)
+    if not plr then return false end
+
+    -- CEK TOOL DI CHARACTER
+    if plr.Character then
+        for _,v in ipairs(plr.Character:GetChildren()) do
+            if v:IsA("Tool") and v.Name == "Knife" then
+                return true
+            end
+        end
+    end
+
+    -- CEK TOOL DI BACKPACK
+    if plr:FindFirstChild("Backpack") then
+        for _,v in ipairs(plr.Backpack:GetChildren()) do
+            if v:IsA("Tool") and v.Name == "Knife" then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+-- =========================
+-- CARI MURDER TERDEKAT KE CROSSHAIR
+-- =========================
+local function GetClosestMurder()
+    local closest
+    local shortest = math.huge
+    local mousePos = UserInputService:GetMouseLocation()
+
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and IsMurderer(plr) and plr.Character then
+            local part = plr.Character:FindFirstChild(_G.AimPart)
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+
+            if part and hum and hum.Health > 0 then
+                local screenPos, visible = Camera:WorldToViewportPoint(part.Position)
+                if visible then
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    if dist < shortest then
+                        shortest = dist
+                        closest = plr
+                    end
+                end
+            end
+        end
+    end
+
+    return closest
+end
+
+-- =========================
+-- INPUT (RIGHT CLICK)
+-- =========================
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        Holding = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        Holding = false
+    end
+end)
+
+-- =========================
+-- AIM LOOP
+-- =========================
+RunService.RenderStepped:Connect(function()
+    if not Holding then return end
+    if not _G.AimbotEnabled then return end
+
+    local target = GetClosestMurder()
+    if not target or not target.Character then return end
+
+    local part = target.Character:FindFirstChild(_G.AimPart)
+    if not part then return end
+
+    TweenService:Create(
+        Camera,
+        TweenInfo.new(_G.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+        {CFrame = CFrame.new(Camera.CFrame.Position, part.Position)}
+    ):Play()
+end)
+
+print("✅ MM2 Murder Lock Aimbot Loaded")
+
+
+-- ======================================
+-- SMOOTH AUTO AIM KNIFE (NO SLIDER)
+-- ======================================
+local smoothAimKnife = false
+local SMOOTH_SPEED = 0.12 -- nilai aman & halus
+
+MainSection:NewToggle(
+    "Auto Aim Knife",
+    "Smooth auto aim saat pegang knife",
+    function(state)
+        smoothAimKnife = state
+    end
+)
+
+local Camera = workspace.CurrentCamera
+
+local function isHoldingKnife()
+    return player.Character and player.Character:FindFirstChild("Knife")
+end
+
+local function getNearestTarget()
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+
+    local nearest, minDist = nil, math.huge
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= player
+            and plr.Character
+            and plr.Character:FindFirstChild("HumanoidRootPart") then
+
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                local dist = (hrp.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+                if dist < minDist then
+                    minDist = dist
+                    nearest = plr
+                end
+            end
+        end
+    end
+
+    return nearest
+end
+
+RunService.RenderStepped:Connect(function()
+    if not smoothAimKnife then return end
+    if not isHoldingKnife() then return end
+
+    local target = getNearestTarget()
+    if not target or not target.Character then return end
+
+    local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+    if not targetHRP then return end
+
+    local camCF = Camera.CFrame
+    local targetCF = CFrame.new(camCF.Position, targetHRP.Position)
+
+    -- SMOOTH AIM (HALUS, TIDAK SNAP)
+    Camera.CFrame = camCF:Lerp(targetCF, SMOOTH_SPEED)
+end)
+
+-- ================================
+-- Auto teleport lobby (INNOCENT ONLY)
+-- ================================
+
+-- SERVICES
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+-- SETTING
+local autoFarm = false
+local farmDelay = 100
+local COIN_NAME = "Coin"
+
+-- ================================
+-- GET CHARACTER
+-- ================================
+local function getHRP()
+    local char = player.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
+end
+
+-- ================================
+-- CEK INNOCENT
+-- ================================
+local function isInnocent()
+    local char = player.Character
+    if not char then return false end
+
+    -- MM2 role check
+    if char:FindFirstChild("Knife") then return false end
+    if char:FindFirstChild("Gun") then return false end
+
+    return true
+end
+
+-- ================================
+-- AUTO FARM LOOP (RINGAN)
+-- ================================
+task.spawn(function()
+    while task.wait(0.25) do
+        if not autoFarm then continue end
+        if not isInnocent() then continue end
+
+        local hrp = getHRP()
+        if not hrp then continue end
+
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if not autoFarm then break end
+            if not isInnocent() then break end
+
+            if obj:IsA("BasePart") and obj.Name == COIN_NAME then
+                -- teleport ke coin
+                hrp.CFrame = obj.CFrame + Vector3.new(0, 2.5, 0)
+
+                -- sentuh coin
+                pcall(function()
+                    firetouchinterest(hrp, obj, 0)
+                    firetouchinterest(hrp, obj, 1)
+                end)
+
+                task.wait(farmDelay)
+            end
+        end
+    end
+end)
+
+-- ================================
+-- AUTO TAB (KAVO UI)
+-- ================================
+local MainSection = MainTab:NewSection("Auto Farm")
+
+MainSection:NewToggle(
+    "Auto Win Innocent",
+    "Auto collect coin saat round (no lobby)",
+    function(state)
+        autoFarm = state
+    end
+)
+
+
+-- ================================
+-- Auto teleport lobby
+-- ================================
+
+-- SERVICES
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+-- SETTING
+local autoFarm = false
+local farmDelay = 0.15 -- makin kecil makin cepat (jangan terlalu kecil)
+local COIN_NAME = "Coin" -- MM2 coin
+
+-- ================================
+-- GET CHARACTER
+-- ================================
+local function getHRP()
+    local char = player.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
+end
+
+-- ================================
+-- AUTO FARM LOOP (RINGAN)
+-- ================================
+task.spawn(function()
+    while task.wait(0.25) do
+        if not autoFarm then continue end
+
+        local hrp = getHRP()
+        if not hrp then continue end
+
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if not autoFarm then break end
+
+            if obj:IsA("BasePart") and obj.Name == COIN_NAME then
+                -- teleport ke coin
+                hrp.CFrame = obj.CFrame + Vector3.new(0, 2.5, 0)
+
+                -- sentuh coin
+                pcall(function()
+                    firetouchinterest(hrp, obj, 0)
+                    firetouchinterest(hrp, obj, 1)
+                end)
+
+                task.wait(farmDelay)
+            end
+        end
+    end
+end)
+
+-- ================================
+-- Tab teleport
+-- ================================
+local TeleportTab = Window:NewTab("Teleport")
+local TeleportSection = TeleportTab:NewSection("Teleport")
+
+TeleportSection:NewToggle(
+    "Auto Lobby",
+    "Auto teleport coin saat innocent",
+    function(state)
+        autoFarm = state
+    end
+)
+
+-- =============================
+-- GLOBAL TOGGLE STATE
+-- =============================
+getgenv().AutoFarmEnabled = false
+
+------------------------------------------------------------------------------------------------
+-- State variables
+local Octree = loadstring(game:HttpGet("https://raw.githubusercontent.com/Sleitnick/rbxts-octo-tree/main/src/init.lua", true))()
+
+local rt = {} -- Removable table
+rt.__index = rt
+rt.octree = Octree.new()
+
+rt.RoundInProgress = false
+
+rt.Players = game.Players
+rt.player = game.Players.LocalPlayer
+
+rt.coinContainer = nil
+rt.radius = 500 :: number -- Radius to search for coins
+rt.walkspeed = 25 :: number -- speed at which you will go to a coin measured in walkspeed
+rt.touchedCoins = {} -- Table to track touched coins
+rt.positionChangeConnections = setmetatable({}, { __mode = "v" }) -- Weak table for connections
+rt.Added = nil :: RBXScriptConnection
+rt.Removing = nil :: RBXScriptConnection
+
+rt.UserDied = nil :: RBXScriptConnection
+
+local State = {
+    Action = "Action",
+    StandStillWait = "StandStillWait",
+    WaitingForRound = "WaitingForRound",
+    WaitingForRoundEnd = "WaitingForRoundEnd",
+    RespawnState = "RespawnState"
+}
+
+local CurrentState = State.WaitingForRound
+local LastPosition = nil
+local RoundInProgress = function()
+    return rt.RoundInProgress
+end
+local BagIsFull = false
+
+-- Constants
+rt.RoleTracker1 = nil :: RBXScriptConnection
+rt.RoleTracker2 = nil :: RBXScriptConnection
+rt.InvalidPos = nil :: RBXScriptConnection
+local IsMurderer = false
+local Working = false
+local ROUND_TIMER = workspace:WaitForChild("RoundTimerPart").SurfaceGui.Timer
+local PLAYER_GUI = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+function rt:Message(_Title, _Text, Time)
+	game:GetService("StarterGui"):SetCore("SendNotification", { Title = _Title, Text = _Text, Duration = Time })
+end
+
+function rt:Character () : (Model)
+    return self.player.Character or self.player.CharacterAdded:Wait()
+end
+
+function rt:GetCharacterLoaded() : (Model)
+    repeat
+        task.wait(0.02)
+    until rt:Character() ~= nil
+end
+
+function rt:CheckIfPlayerIsInARound () : (boolean)
+    --check if player is in a round
+    --check by going to the players gui -> MainGui -> Game -> Timer.Visible
+    if not PLAYER_GUI:WaitForChild("MainGUI") then return false end
+
+    if PLAYER_GUI:WaitForChild("MainGUI").Game.Timer.Visible then
+        return true
+    end
+
+    --check by going to the players gui -> MainGui -> Game -> EarnedXP.Visible
+    if PLAYER_GUI:WaitForChild("MainGUI").Game.EarnedXP.Visible then
+        return true
+    end
+
+    return false
+end
+
+function rt:MainGUI () : (ScreenGui)
+    return self.player.PlayerGui.MainGUI or self.player.PlayerGui:WaitForChild("MainGUI")
+end
+
+function rt.Disconnect (connection:RBXScriptConnection)
+    if connection and connection.Connected then
+        connection:Disconnect()
+    end
+end
+
+function rt:Map () : (Model | nil)
+    for _, v in workspace:GetDescendants() do
+        if v.Name == "Spawns" and v.Parent.Name ~= "Lobby"  then
+            return v.Parent
+        end
+    end
+    return nil
+end
+
+function rt:CheckIfGameInProgress () : (boolean)
+    if rt:Map() then return true end
+    return false
+end
+
+function rt:GetAlivePlayers (): (table | nil)
+    --get all players that are alive
+    local aliveplrs = setmetatable({}, {__mode = "v"})
+    local OldPos = self:Character():GetPivot()
+    local pos = CFrame.new(-121.995956, 134.462997, 46.4180717)
+    
+    if not rt:CheckIfGameInProgress() then return nil end
+
+    local isAlive = rt:CheckIfPlayerIsInARound()
+
+    if not isAlive then self:Character():PivotTo(pos) end
+
+    for _, v in pairs(rt.Players:GetPlayers()) do
+        local distance = (self:Character().PrimaryPart.Position - v.Character.PrimaryPart.Position).Magnitude
+        if isAlive then
+            if distance <= 500 then
+                table.insert(aliveplrs, v)
+            end
+        else
+            if distance > 500 then
+                table.insert(aliveplrs, v)
+            end
+        end
+    end
+
+    if not isAlive then self:Character():PivotTo(OldPos) end
+    
+    return aliveplrs
+end
+
+function rt:CheckIfPlayerWasInARound () : (boolean)
+    if self.player:GetAttribute("Alive") then
+        return true
+    end
+
+    return false
+end
+
+function rt:IsElite() : (boolean)
+    if self.player:GetAttribute("Elite") then
+        return true
+    end
+
+    return false
+end
+
+local function AutoFarmCleanUp()
+    if next(rt.positionChangeConnections) == nil then
+        return rt:Message("Info", "Nothing to clean", 1)
+    end
+
+    -- Clean up all connections and cached data
+    for _, connection in pairs(rt.positionChangeConnections) do
+        rt.Disconnect(connection)
+    end
+    rt.Disconnect(rt.Added)
+    rt.Disconnect(rt.Removing)
+
+    rt:Message("Info", "Autofarm CleanUp Success", 2)
+    table.clear(rt.touchedCoins)
+    table.clear(rt.positionChangeConnections)
+    rt.octree:ClearAllNodes()
+end
+
+-- Function to check if a coin has been touched
+local function isCoinTouched(coin)
+    return rt.touchedCoins[coin]
+end
+
+-- Function to mark a coin as touched
+local function markCoinAsTouched(coin)
+    if not rt then return end
+    rt.touchedCoins[coin] = true
+    local node = rt.octree:FindFirstNode(coin)
+    if node then
+        rt.octree:RemoveNode(node)
+    end
+end
+
+-- Function to track touch interactions
+local function setupTouchTracking(coin)
+    
+    local touchInterest = coin:FindFirstChildWhichIsA("TouchTransmitter")
+    if touchInterest then
+        local connection
+        connection = touchInterest.AncestryChanged:Connect(function(_, parent)
+            if not rt then connection:Disconnect() return end
+            if parent == nil then
+                -- TouchInterest removed; mark the coin as touched
+                markCoinAsTouched(coin)
+                rt.Disconnect(connection)
+            end
+        end)
+        rt.positionChangeConnections[coin] = connection
+    end
+end
+
+local function setupPositionTracking(coin: MeshPart, LastPositonY: number)
+    local connection
+    connection = coin:GetPropertyChangedSignal("Position"):Connect(function()
+        -- Check if the Y position has changed
+        local currentY = coin.Position.Y
+        if LastPositonY and LastPositonY ~= currentY then
+
+            -- Remove the coin from the octree as it has been moved
+            markCoinAsTouched(coin)
+
+            rt.Disconnect(connection)
+            coin:Destroy()
+            return
+        end
+    end)
+    rt.positionChangeConnections[coin] = connection
+end
+
+local function moveToPositionSlowly(targetPosition: Vector3, duration: number)
+    local startPosition = rt:Character().PrimaryPart.Position
+    local startTime = tick()
+
+    local nearestNode = rt.octree:GetNearest(rt:Character().PrimaryPart.Position, rt.radius, 1)[1]
+    if nearestNode then
+        local closestCoin = nearestNode.Object
+        if not isCoinTouched(closestCoin) then
+            local targetPosition2 = closestCoin.Position
+            if targetPosition ~= targetPosition2 then 
+                targetPosition = targetPosition2
+            end
+        end
+    end
+    
+    while true do
+        local elapsedTime = tick() - startTime
+        local alpha = math.min(elapsedTime / duration, 1)
+
+        if rt:Character() == nil then break end
+
+        rt:Character():PivotTo(CFrame.new(startPosition:Lerp(targetPosition, alpha)))
+
+        if alpha >= 1 then
+            task.wait(0.2)
+            break
+        end
+
+        task.wait() -- Small delay to make the movement smoother
+    end
+end
+-- Function to populate the Octree with coins
+local function populateOctree()
+    rt.octree:ClearAllNodes() -- Clear previous nodes
+
+    for _, descendant in pairs(rt.coinContainer:GetDescendants()) do
+        if descendant:IsA("TouchTransmitter") then --and descendant.Material == rt.Material then
+            local parentCoin = descendant.Parent
+            if not isCoinTouched(parentCoin) then
+                rt.octree:CreateNode(parentCoin.Position, parentCoin)
+                setupTouchTracking(parentCoin)
+            end
+            setupPositionTracking(parentCoin, parentCoin.Position.Y)
+        end
+    end
+
+    rt.Added = rt.coinContainer.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA("TouchTransmitter") then --and descendant.Material == rt.Material then
+            local parentCoin = descendant.Parent
+            if not isCoinTouched(parentCoin) then
+                rt.octree:CreateNode(parentCoin.Position, parentCoin)
+                setupTouchTracking(parentCoin)
+                setupPositionTracking(parentCoin, parentCoin.Position.Y)
+            end
+        end
+    end)
+
+    rt.Removing = rt.coinContainer.DescendantRemoving:Connect(function(descendant)
+        if descendant:IsA("TouchTransmitter") and descendant.Parent.Name == "Coin_Server" then
+            local parentCoin = descendant.Parent
+            if isCoinTouched(parentCoin) then
+                markCoinAsTouched(parentCoin)
+            end
+        end
+    end)
+end
+
+local function ChangeState(State)
+    CurrentState = State
+end
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+-- Helper Functions
+
+local function CheckMurderer()
+    return IsMurderer
+end
+
+local function IsBagFull()
+    local playerGui = PLAYER_GUI:WaitForChild("MainGUI")
+    local coinText = playerGui.Game.CoinBags.Container.SnowToken.CurrencyFrame.Icon.Coins.Text
+    return tonumber(coinText) >= (rt:IsElite() and 50 or 40)
+end
+
+local function RespawnAndTeleportBack()
+    LastPosition = LastPosition ~= nil and LastPosition or rt:Character():GetPivot()
+    rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+    rt:GetCharacterLoaded()
+    task.wait(1)
+    
+    if rt:Character() then
+        if not RoundInProgress() then rt:GetCharacterLoaded() return ChangeState(State.WaitingForRound) end
+        rt:GetCharacterLoaded()
+        rt:Character():PivotTo(LastPosition)
+    end
+end
+
+local function CollectCoins()
+    Working = true
+    rt.coinContainer = rt:Map():FindFirstChild("CoinContainer")
+    populateOctree()
+    while CurrentState == State.Action do
+        if IsBagFull() then
+            rt:Message("Alert", "Bag is full!", 2)
+            BagIsFull = true
+            break
+        end
+
+        if rt:Character() == nil then
+            break
+        end
+
+        -- Find nearest coin
+        local nearestNode = rt.octree:GetNearest(rt:Character().PrimaryPart.Position, rt.radius, 1)[1]
+        if nearestNode then
+            local closestCoin = nearestNode.Object
+            if not isCoinTouched(closestCoin) then
+                local targetPosition = closestCoin.Position
+                local duration = (rt:Character().PrimaryPart.Position - targetPosition).Magnitude / rt.walkspeed
+                moveToPositionSlowly(targetPosition, duration)
+                markCoinAsTouched(closestCoin)
+                task.wait(0.2)
+            end
+        else
+            task.wait(1)
+        end
+    end
+    AutoFarmCleanUp()
+end
+
+local function RespawnState()
+    rt:Message("Info", "Respawning...", 2)
+    rt:GetCharacterLoaded()
+    task.wait(1)
+    if LastPosition == nil then LastPosition = rt:GetAlivePlayers()[1] end
+    if rt:Character() then
+        rt:GetCharacterLoaded()
+        rt:Character():PivotTo(LastPosition)
+    end
+    rt:Message("Info", "Respawned!", 2)
+
+    if not RoundInProgress() then
+        rt:Message("Info", "Round ended during respawn!", 2)
+        ChangeState(State.WaitingForRound)
+        return
+    end
+
+    ChangeState(State.Action)
+end
+
+-- Waiting State Logic
+local function WaitingForRound()
+    rt:Message("Info", "Waiting for round to start...", 2)
+    Working = false
+    --rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Seated)
+   -- Monitor round start
+    repeat
+        task.wait(0.5)
+    until RoundInProgress() and rt:CheckIfPlayerWasInARound()
+
+    rt:Message("Alert", "Round started!", 2)
+    ChangeState(State.Action)
+end
+
+local function waitForRoundEnd()
+    rt:Message("Info", "Waiting for round to end...", 2)
+    Working = false
+    --rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Seated)
+    -- Monitor round end
+    repeat
+        task.wait(1)
+    until not RoundInProgress()
+
+    rt:Message("Alert", "Round ended!", 2)
+    ChangeState(State.WaitingForRound)
+end
+
+local function StandStillWait()
+    rt:Message("Info", "Waiting for murderer to respawn", 2)
+    ChangeState("Nothing")
+    rt:GetCharacterLoaded()
+    task.wait(2)
+    ChangeState(State.WaitingForRound)
+end
+
+-- Action State Logic
+local function ActionState()
+    LastPosition = nil
+    if CheckMurderer() then
+        rt:Message("Info", "You are the Murderer! Collecting coins...", 2)
+        CollectCoins()
+    else
+        rt:Message("Info", "Logging position and respawning...", 2)
+        --if #game.Players:GetChildren() > 2 then RespawnAndTeleportBack(); CollectCoins() else CollectCoins() end
+        CollectCoins()
+    end
+
+    -- After collecting coins or if the round ends, return to waiting state
+    if BagIsFull or not RoundInProgress() then
+        if CheckMurderer() then
+            rt:Message("Info", "Returning to Waiting State...", 2)
+            BagIsFull, Working, rt.RoundInProgress = false, false, false
+            rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+        else
+            rt:Message("Info", "Returning to Waiting State...", 2)
+            BagIsFull, Working = false, false
+            rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+            ChangeState(State.WaitingForRoundEnd)
+        end
+    end
+    
+end
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+rt.RoleTracker1 = rt.player.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("Tool") then
+        if descendant.Name == "Knife" then
+            IsMurderer = true
+        end
+    end
+end)
+
+rt.InvalidPos = workspace.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("Model") then
+        if string.match(descendant.Name, "Glitch") and descendant.Parent.Name ~= "Lobby" then
+            descendant:Destroy()
+        end
+
+        if string.match(descendant.Name, "Invis") and descendant.Parent.Name ~= "Lobby" then
+            descendant:Destroy()
+        end
+    end
+end)
+
+ -- Monitor round start
+local LastText
+ROUND_TIMER:GetPropertyChangedSignal("Text"):Connect(function()
+    rt.RoundInProgress = true
+end)
+
+PLAYER_GUI.ChildAdded:Connect(function(child)
+    if child:IsA("Sound") then
+        rt.RoundInProgress = false
+        Working = false
+        ChangeState(State.WaitingForRound)
+    end
+end)
+
+rt.UserDied = rt.player.CharacterRemoving:Connect(function(character)
+    AutoFarmCleanUp()
+    LastText = ROUND_TIMER.Text
+    if CheckMurderer() then IsMurderer = false; LastPosition = nil; Working = false; rt.RoundInProgress = false return ChangeState(State.StandStillWait) end
+    
+    if not RoundInProgress() then IsMurderer = false; LastPosition = nil; Working = false; return ChangeState(State.WaitingForRound) end
+
+    task.wait(2)
+    if LastText == ROUND_TIMER.Text then LastPosition = nil; IsMurderer = false; rt.RoundInProgress = false; Working = false return ChangeState(State.WaitingForRound) end
+
+    if Working then
+        Working = false
+        IsMurderer = false
+        LastPosition = nil
+        ChangeState(State.RespawnState)
+    end
+end)
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+IsMurderer = rt.player.Backpack:FindFirstChild("Knife") and true or false  
+
+-- =============================
+-- TOGGLE GUI
+-- =============================
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "AutoFarmToggleGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 160, 0, 45)
+button.Position = UDim2.new(0, 20, 0, 200)
+button.BackgroundColor3 = Color3.fromRGB(60, 0, 90)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 14
+button.Text = "AUTOFARM : OFF"
+button.Parent = gui
+button.Active = true
+button.Draggable = true
+
+button.MouseButton1Click:Connect(function()
+    getgenv().AutoFarmEnabled = not getgenv().AutoFarmEnabled
+    button.Text = getgenv().AutoFarmEnabled and "AUTOFARM : ON" or "AUTOFARM : OFF"
+
+    if not getgenv().AutoFarmEnabled then
+        -- stop safely
+        Working = false
+        BagIsFull = false
+        AutoFarmCleanUp()
+        ChangeState(State.WaitingForRound)
+    end
+end)
+
+-- =============================
+-- MAIN LOOP (TOGGLE SAFE)
+-- =============================
+while true do
+    if getgenv().AutoFarmEnabled then
+        if CurrentState == State.WaitingForRound then
+            WaitingForRound()
+        elseif CurrentState == State.Action then
+            ActionState()
+        elseif CurrentState == State.WaitingForRoundEnd then
+            waitForRoundEnd()
+        elseif CurrentState == State.RespawnState then
+            RespawnState()
+        elseif CurrentState == State.StandStillWait then
+            StandStillWait()
+        end
+    else
+        task.wait(0.2) -- idle when OFF
+    end
+    task.wait()
+end
+
+---------------------------------------------------------------------------------------------------------
+--if the sound doesnt play when the murderer dies run getgenv().RoundInProgress = false  add it directly into the script
+
+-- =============================
+-- GLOBAL TOGGLE STATE
+-- =============================
+getgenv().AutoFarmEnabled = false
+
+------------------------------------------------------------------------------------------------
+-- State variables
+local Octree = loadstring(game:HttpGet("https://raw.githubusercontent.com/Sleitnick/rbxts-octo-tree/main/src/init.lua", true))()
+
+local rt = {} -- Removable table
+rt.__index = rt
+rt.octree = Octree.new()
+
+rt.RoundInProgress = false
+
+rt.Players = game.Players
+rt.player = game.Players.LocalPlayer
+
+rt.coinContainer = nil
+rt.radius = 500 :: number -- Radius to search for coins
+rt.walkspeed = 25 :: number -- speed at which you will go to a coin measured in walkspeed
+rt.touchedCoins = {} -- Table to track touched coins
+rt.positionChangeConnections = setmetatable({}, { __mode = "v" }) -- Weak table for connections
+rt.Added = nil :: RBXScriptConnection
+rt.Removing = nil :: RBXScriptConnection
+
+rt.UserDied = nil :: RBXScriptConnection
+
+local State = {
+    Action = "Action",
+    StandStillWait = "StandStillWait",
+    WaitingForRound = "WaitingForRound",
+    WaitingForRoundEnd = "WaitingForRoundEnd",
+    RespawnState = "RespawnState"
+}
+
+local CurrentState = State.WaitingForRound
+local LastPosition = nil
+local RoundInProgress = function()
+    return rt.RoundInProgress
+end
+local BagIsFull = false
+
+-- Constants
+rt.RoleTracker1 = nil :: RBXScriptConnection
+rt.RoleTracker2 = nil :: RBXScriptConnection
+rt.InvalidPos = nil :: RBXScriptConnection
+local IsMurderer = false
+local Working = false
+local ROUND_TIMER = workspace:WaitForChild("RoundTimerPart").SurfaceGui.Timer
+local PLAYER_GUI = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+function rt:Message(_Title, _Text, Time)
+	game:GetService("StarterGui"):SetCore("SendNotification", { Title = _Title, Text = _Text, Duration = Time })
+end
+
+function rt:Character () : (Model)
+    return self.player.Character or self.player.CharacterAdded:Wait()
+end
+
+function rt:GetCharacterLoaded() : (Model)
+    repeat
+        task.wait(0.02)
+    until rt:Character() ~= nil
+end
+
+function rt:CheckIfPlayerIsInARound () : (boolean)
+    --check if player is in a round
+    --check by going to the players gui -> MainGui -> Game -> Timer.Visible
+    if not PLAYER_GUI:WaitForChild("MainGUI") then return false end
+
+    if PLAYER_GUI:WaitForChild("MainGUI").Game.Timer.Visible then
+        return true
+    end
+
+    --check by going to the players gui -> MainGui -> Game -> EarnedXP.Visible
+    if PLAYER_GUI:WaitForChild("MainGUI").Game.EarnedXP.Visible then
+        return true
+    end
+
+    return false
+end
+
+function rt:MainGUI () : (ScreenGui)
+    return self.player.PlayerGui.MainGUI or self.player.PlayerGui:WaitForChild("MainGUI")
+end
+
+function rt.Disconnect (connection:RBXScriptConnection)
+    if connection and connection.Connected then
+        connection:Disconnect()
+    end
+end
+
+function rt:Map () : (Model | nil)
+    for _, v in workspace:GetDescendants() do
+        if v.Name == "Spawns" and v.Parent.Name ~= "Lobby"  then
+            return v.Parent
+        end
+    end
+    return nil
+end
+
+function rt:CheckIfGameInProgress () : (boolean)
+    if rt:Map() then return true end
+    return false
+end
+
+function rt:GetAlivePlayers (): (table | nil)
+    --get all players that are alive
+    local aliveplrs = setmetatable({}, {__mode = "v"})
+    local OldPos = self:Character():GetPivot()
+    local pos = CFrame.new(-121.995956, 134.462997, 46.4180717)
+    
+    if not rt:CheckIfGameInProgress() then return nil end
+
+    local isAlive = rt:CheckIfPlayerIsInARound()
+
+    if not isAlive then self:Character():PivotTo(pos) end
+
+    for _, v in pairs(rt.Players:GetPlayers()) do
+        local distance = (self:Character().PrimaryPart.Position - v.Character.PrimaryPart.Position).Magnitude
+        if isAlive then
+            if distance <= 500 then
+                table.insert(aliveplrs, v)
+            end
+        else
+            if distance > 500 then
+                table.insert(aliveplrs, v)
+            end
+        end
+    end
+
+    if not isAlive then self:Character():PivotTo(OldPos) end
+    
+    return aliveplrs
+end
+
+function rt:CheckIfPlayerWasInARound () : (boolean)
+    if self.player:GetAttribute("Alive") then
+        return true
+    end
+
+    return false
+end
+
+function rt:IsElite() : (boolean)
+    if self.player:GetAttribute("Elite") then
+        return true
+    end
+
+    return false
+end
+
+local function AutoFarmCleanUp()
+    if next(rt.positionChangeConnections) == nil then
+        return rt:Message("Info", "Nothing to clean", 1)
+    end
+
+    -- Clean up all connections and cached data
+    for _, connection in pairs(rt.positionChangeConnections) do
+        rt.Disconnect(connection)
+    end
+    rt.Disconnect(rt.Added)
+    rt.Disconnect(rt.Removing)
+
+    rt:Message("Info", "Autofarm CleanUp Success", 2)
+    table.clear(rt.touchedCoins)
+    table.clear(rt.positionChangeConnections)
+    rt.octree:ClearAllNodes()
+end
+
+-- Function to check if a coin has been touched
+local function isCoinTouched(coin)
+    return rt.touchedCoins[coin]
+end
+
+-- Function to mark a coin as touched
+local function markCoinAsTouched(coin)
+    if not rt then return end
+    rt.touchedCoins[coin] = true
+    local node = rt.octree:FindFirstNode(coin)
+    if node then
+        rt.octree:RemoveNode(node)
+    end
+end
+
+-- Function to track touch interactions
+local function setupTouchTracking(coin)
+    
+    local touchInterest = coin:FindFirstChildWhichIsA("TouchTransmitter")
+    if touchInterest then
+        local connection
+        connection = touchInterest.AncestryChanged:Connect(function(_, parent)
+            if not rt then connection:Disconnect() return end
+            if parent == nil then
+                -- TouchInterest removed; mark the coin as touched
+                markCoinAsTouched(coin)
+                rt.Disconnect(connection)
+            end
+        end)
+        rt.positionChangeConnections[coin] = connection
+    end
+end
+
+local function setupPositionTracking(coin: MeshPart, LastPositonY: number)
+    local connection
+    connection = coin:GetPropertyChangedSignal("Position"):Connect(function()
+        -- Check if the Y position has changed
+        local currentY = coin.Position.Y
+        if LastPositonY and LastPositonY ~= currentY then
+
+            -- Remove the coin from the octree as it has been moved
+            markCoinAsTouched(coin)
+
+            rt.Disconnect(connection)
+            coin:Destroy()
+            return
+        end
+    end)
+    rt.positionChangeConnections[coin] = connection
+end
+
+local function moveToPositionSlowly(targetPosition: Vector3, duration: number)
+    local startPosition = rt:Character().PrimaryPart.Position
+    local startTime = tick()
+
+    local nearestNode = rt.octree:GetNearest(rt:Character().PrimaryPart.Position, rt.radius, 1)[1]
+    if nearestNode then
+        local closestCoin = nearestNode.Object
+        if not isCoinTouched(closestCoin) then
+            local targetPosition2 = closestCoin.Position
+            if targetPosition ~= targetPosition2 then 
+                targetPosition = targetPosition2
+            end
+        end
+    end
+    
+    while true do
+        local elapsedTime = tick() - startTime
+        local alpha = math.min(elapsedTime / duration, 1)
+
+        if rt:Character() == nil then break end
+
+        rt:Character():PivotTo(CFrame.new(startPosition:Lerp(targetPosition, alpha)))
+
+        if alpha >= 1 then
+            task.wait(0.2)
+            break
+        end
+
+        task.wait() -- Small delay to make the movement smoother
+    end
+end
+-- Function to populate the Octree with coins
+local function populateOctree()
+    rt.octree:ClearAllNodes() -- Clear previous nodes
+
+    for _, descendant in pairs(rt.coinContainer:GetDescendants()) do
+        if descendant:IsA("TouchTransmitter") then --and descendant.Material == rt.Material then
+            local parentCoin = descendant.Parent
+            if not isCoinTouched(parentCoin) then
+                rt.octree:CreateNode(parentCoin.Position, parentCoin)
+                setupTouchTracking(parentCoin)
+            end
+            setupPositionTracking(parentCoin, parentCoin.Position.Y)
+        end
+    end
+
+    rt.Added = rt.coinContainer.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA("TouchTransmitter") then --and descendant.Material == rt.Material then
+            local parentCoin = descendant.Parent
+            if not isCoinTouched(parentCoin) then
+                rt.octree:CreateNode(parentCoin.Position, parentCoin)
+                setupTouchTracking(parentCoin)
+                setupPositionTracking(parentCoin, parentCoin.Position.Y)
+            end
+        end
+    end)
+
+    rt.Removing = rt.coinContainer.DescendantRemoving:Connect(function(descendant)
+        if descendant:IsA("TouchTransmitter") and descendant.Parent.Name == "Coin_Server" then
+            local parentCoin = descendant.Parent
+            if isCoinTouched(parentCoin) then
+                markCoinAsTouched(parentCoin)
+            end
+        end
+    end)
+end
+
+local function ChangeState(State)
+    CurrentState = State
+end
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+-- Helper Functions
+
+local function CheckMurderer()
+    return IsMurderer
+end
+
+local function IsBagFull()
+    local playerGui = PLAYER_GUI:WaitForChild("MainGUI")
+    local coinText = playerGui.Game.CoinBags.Container.SnowToken.CurrencyFrame.Icon.Coins.Text
+    return tonumber(coinText) >= (rt:IsElite() and 50 or 40)
+end
+
+local function RespawnAndTeleportBack()
+    LastPosition = LastPosition ~= nil and LastPosition or rt:Character():GetPivot()
+    rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+    rt:GetCharacterLoaded()
+    task.wait(1)
+    
+    if rt:Character() then
+        if not RoundInProgress() then rt:GetCharacterLoaded() return ChangeState(State.WaitingForRound) end
+        rt:GetCharacterLoaded()
+        rt:Character():PivotTo(LastPosition)
+    end
+end
+
+local function CollectCoins()
+    Working = true
+    rt.coinContainer = rt:Map():FindFirstChild("CoinContainer")
+    populateOctree()
+    while CurrentState == State.Action do
+        if IsBagFull() then
+            rt:Message("Alert", "Bag is full!", 2)
+            BagIsFull = true
+            break
+        end
+
+        if rt:Character() == nil then
+            break
+        end
+
+        -- Find nearest coin
+        local nearestNode = rt.octree:GetNearest(rt:Character().PrimaryPart.Position, rt.radius, 1)[1]
+        if nearestNode then
+            local closestCoin = nearestNode.Object
+            if not isCoinTouched(closestCoin) then
+                local targetPosition = closestCoin.Position
+                local duration = (rt:Character().PrimaryPart.Position - targetPosition).Magnitude / rt.walkspeed
+                moveToPositionSlowly(targetPosition, duration)
+                markCoinAsTouched(closestCoin)
+                task.wait(0.2)
+            end
+        else
+            task.wait(1)
+        end
+    end
+    AutoFarmCleanUp()
+end
+
+local function RespawnState()
+    rt:Message("Info", "Respawning...", 2)
+    rt:GetCharacterLoaded()
+    task.wait(1)
+    if LastPosition == nil then LastPosition = rt:GetAlivePlayers()[1] end
+    if rt:Character() then
+        rt:GetCharacterLoaded()
+        rt:Character():PivotTo(LastPosition)
+    end
+    rt:Message("Info", "Respawned!", 2)
+
+    if not RoundInProgress() then
+        rt:Message("Info", "Round ended during respawn!", 2)
+        ChangeState(State.WaitingForRound)
+        return
+    end
+
+    ChangeState(State.Action)
+end
+
+-- Waiting State Logic
+local function WaitingForRound()
+    rt:Message("Info", "Waiting for round to start...", 2)
+    Working = false
+    --rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Seated)
+   -- Monitor round start
+    repeat
+        task.wait(0.5)
+    until RoundInProgress() and rt:CheckIfPlayerWasInARound()
+
+    rt:Message("Alert", "Round started!", 2)
+    ChangeState(State.Action)
+end
+
+local function waitForRoundEnd()
+    rt:Message("Info", "Waiting for round to end...", 2)
+    Working = false
+    --rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Seated)
+    -- Monitor round end
+    repeat
+        task.wait(1)
+    until not RoundInProgress()
+
+    rt:Message("Alert", "Round ended!", 2)
+    ChangeState(State.WaitingForRound)
+end
+
+local function StandStillWait()
+    rt:Message("Info", "Waiting for murderer to respawn", 2)
+    ChangeState("Nothing")
+    rt:GetCharacterLoaded()
+    task.wait(2)
+    ChangeState(State.WaitingForRound)
+end
+
+-- Action State Logic
+local function ActionState()
+    LastPosition = nil
+    if CheckMurderer() then
+        rt:Message("Info", "You are the Murderer! Collecting coins...", 2)
+        CollectCoins()
+    else
+        rt:Message("Info", "Logging position and respawning...", 2)
+        --if #game.Players:GetChildren() > 2 then RespawnAndTeleportBack(); CollectCoins() else CollectCoins() end
+        CollectCoins()
+    end
+
+    -- After collecting coins or if the round ends, return to waiting state
+    if BagIsFull or not RoundInProgress() then
+        if CheckMurderer() then
+            rt:Message("Info", "Returning to Waiting State...", 2)
+            BagIsFull, Working, rt.RoundInProgress = false, false, false
+            rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+        else
+            rt:Message("Info", "Returning to Waiting State...", 2)
+            BagIsFull, Working = false, false
+            rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+            ChangeState(State.WaitingForRoundEnd)
+        end
+    end
+    
+end
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+rt.RoleTracker1 = rt.player.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("Tool") then
+        if descendant.Name == "Knife" then
+            IsMurderer = true
+        end
+    end
+end)
+
+rt.InvalidPos = workspace.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("Model") then
+        if string.match(descendant.Name, "Glitch") and descendant.Parent.Name ~= "Lobby" then
+            descendant:Destroy()
+        end
+
+        if string.match(descendant.Name, "Invis") and descendant.Parent.Name ~= "Lobby" then
+            descendant:Destroy()
+        end
+    end
+end)
+
+ -- Monitor round start
+local LastText
+ROUND_TIMER:GetPropertyChangedSignal("Text"):Connect(function()
+    rt.RoundInProgress = true
+end)
+
+PLAYER_GUI.ChildAdded:Connect(function(child)
+    if child:IsA("Sound") then
+        rt.RoundInProgress = false
+        Working = false
+        ChangeState(State.WaitingForRound)
+    end
+end)
+
+rt.UserDied = rt.player.CharacterRemoving:Connect(function(character)
+    AutoFarmCleanUp()
+    LastText = ROUND_TIMER.Text
+    if CheckMurderer() then IsMurderer = false; LastPosition = nil; Working = false; rt.RoundInProgress = false return ChangeState(State.StandStillWait) end
+    
+    if not RoundInProgress() then IsMurderer = false; LastPosition = nil; Working = false; return ChangeState(State.WaitingForRound) end
+
+    task.wait(2)
+    if LastText == ROUND_TIMER.Text then LastPosition = nil; IsMurderer = false; rt.RoundInProgress = false; Working = false return ChangeState(State.WaitingForRound) end
+
+    if Working then
+        Working = false
+        IsMurderer = false
+        LastPosition = nil
+        ChangeState(State.RespawnState)
+    end
+end)
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+IsMurderer = rt.player.Backpack:FindFirstChild("Knife") and true or false  
+
+-- =============================
+-- TOGGLE GUI
+-- =============================
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "AutoFarmToggleGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 160, 0, 45)
+button.Position = UDim2.new(0, 20, 0, 200)
+button.BackgroundColor3 = Color3.fromRGB(60, 0, 90)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 14
+button.Text = "AUTOFARM : OFF"
+button.Parent = gui
+button.Active = true
+button.Draggable = true
+
+button.MouseButton1Click:Connect(function()
+    getgenv().AutoFarmEnabled = not getgenv().AutoFarmEnabled
+    button.Text = getgenv().AutoFarmEnabled and "AUTOFARM : ON" or "AUTOFARM : OFF"
+
+    if not getgenv().AutoFarmEnabled then
+        -- stop safely
+        Working = false
+        BagIsFull = false
+        AutoFarmCleanUp()
+        ChangeState(State.WaitingForRound)
+    end
+end)
+
+-- =============================
+-- MAIN LOOP (TOGGLE SAFE)
+-- =============================
+while true do
+    if getgenv().AutoFarmEnabled then
+        if CurrentState == State.WaitingForRound then
+            WaitingForRound()
+        elseif CurrentState == State.Action then
+            ActionState()
+        elseif CurrentState == State.WaitingForRoundEnd then
+            waitForRoundEnd()
+        elseif CurrentState == State.RespawnState then
+            RespawnState()
+        elseif CurrentState == State.StandStillWait then
+            StandStillWait()
+        end
+    else
+        task.wait(0.2) -- idle when OFF
+    end
+    task.wait()
+end
+
+----------------------------------------------------------
+-- ======================================
+-- ANTI AFK / IDLE
+-- ======================================
+player.Idled:Connect(function()
+    local vu = game:GetService("VirtualUser")
+    vu:CaptureController()
+    vu:ClickButton2(Vector2.new())
+end)
+
+print("✅ XieHub Loaded - Fly to Coin & Anti-AFK aktif")
