@@ -1,6 +1,3 @@
--- ======================================
--- X I E H U B  - LETTER FADE (X FIRST)
--- ======================================
 
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
@@ -20,7 +17,7 @@ holder.BackgroundTransparency = 1
 local text = "XieHub"
 local letters = {}
 
--- BUAT LABEL PER HURUF (URUT NORMAL)
+
 for i = 1, #text do
     local char = text:sub(i, i)
 
@@ -35,7 +32,7 @@ for i = 1, #text do
     lbl.Size = UDim2.fromScale(0.12, 1)
     lbl.Parent = holder
 
-    -- GLOW UNGU
+    
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(180, 100, 255)
     stroke.Thickness = 2
@@ -45,7 +42,7 @@ for i = 1, #text do
     table.insert(letters, lbl)
 end
 
--- POSISI RAPIH (TENGAH)
+
 task.wait()
 for i, lbl in ipairs(letters) do
     lbl.Position = UDim2.fromScale(
@@ -54,7 +51,7 @@ for i, lbl in ipairs(letters) do
     )
 end
 
--- ANIMASI: X → i → e → H → u → b
+
 for _, lbl in ipairs(letters) do
     TweenService:Create(lbl, TweenInfo.new(
         0.35,
@@ -77,7 +74,7 @@ end
 
 task.wait(0.9)
 
--- FADE OUT SEMUA
+
 for _, lbl in ipairs(letters) do
     TweenService:Create(lbl, TweenInfo.new(0.35), {
         TextTransparency = 1,
@@ -88,7 +85,7 @@ end
 task.wait(0.4)
 gui:Destroy()
 
--- LOAD KAVO UI
+
 local Library = loadstring(game:HttpGetAsync(
     "https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"
 ))()
@@ -103,9 +100,9 @@ local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService") -- 🔧 WAJIB
 local player = Players.LocalPlayer
 
--- ======================================
--- GET KAVO MAIN FRAME (WAJIB)
--- ======================================
+-- ======================
+-- GET KAVO MAIN FRAME
+-- ======================
 task.wait(0.5)
 
 local KavoFrame
@@ -806,7 +803,7 @@ local function getHRP()
 end
 
 -- ================================
--- CEK INNOCENT
+--INNOCENT
 -- ================================
 local function isInnocent()
     local char = player.Character
@@ -819,9 +816,9 @@ local function isInnocent()
     return true
 end
 
--- ================================
--- AUTO FARM LOOP (RINGAN)
--- ================================
+-- ===============
+-- AUTO FARM LOOP 
+-- ===============
 task.spawn(function()
     while task.wait(0.25) do
         if not autoFarm then continue end
@@ -862,6 +859,197 @@ MainSection:NewToggle(
         autoFarm = state
     end
 )
+
+-- =============================
+-- AUTO MURDER KILL
+-- PRIORITY SHERIFF + MULTI HIT BURST
+-- NO DEAD / NO LOBBY
+-- TOGGLE VIA MAINTAB
+-- =============================
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+getgenv().AutoKillMurder = false
+
+-- =============================
+-- CONFIG
+-- =============================
+local TELEPORT_DISTANCE = 7
+local TELEPORT_OFFSET   = -0.8
+local TELEPORT_COOLDOWN = 0.6
+local LOOP_DELAY        = 0.25
+
+local HIT_DELAY         = 0.4
+local BURST_HITS        = 3
+local BURST_INTERVAL   = 0.05
+
+local EQUIP_COOLDOWN    = 1
+
+local lastTeleport = 0
+local lastHit = 0
+local lastEquip = 0
+
+-- =============================
+-- TOGGLE (MAIN TAB)
+-- =============================
+MainSection:NewToggle(
+    "Auto Win Murder",
+    "Auto kill semua player saat round (no lobby)",
+    function(state)
+        getgenv().AutoKillMurder = state
+    end
+)
+
+-- =============================
+-- HELPERS
+-- =============================
+local function getHRP(c) return c and c:FindFirstChild("HumanoidRootPart") end
+local function getHum(c) return c and c:FindFirstChildOfClass("Humanoid") end
+
+local function isAlive(c)
+    local h = getHum(c)
+    return h and h.Health > 0
+end
+
+local function isInLobby(plr)
+    if plr.Team and plr.Team.Name == "Lobby" then
+        return true
+    end
+    return false
+end
+
+local function isValidTarget(plr)
+    if not plr or plr == LocalPlayer then return false end
+    if isInLobby(plr) then return false end
+
+    local c = plr.Character
+    if not c then return false end
+    if not isAlive(c) then return false end
+    if not getHRP(c) then return false end
+
+    return true
+end
+
+local function isMurder()
+    local c = LocalPlayer.Character
+    return c and (c:FindFirstChild("Knife") or LocalPlayer.Backpack:FindFirstChild("Knife"))
+end
+
+local function getKnife()
+    return LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Knife")
+end
+
+-- =============================
+-- AUTO EQUIP KNIFE
+-- =============================
+local function autoEquipKnife()
+    if tick() - lastEquip < EQUIP_COOLDOWN then return end
+    local char = LocalPlayer.Character
+    local hum = getHum(char)
+    if not hum then return end
+
+    if not char:FindFirstChild("Knife") then
+        local knife = LocalPlayer.Backpack:FindFirstChild("Knife")
+        if knife then
+            pcall(function()
+                hum:EquipTool(knife)
+            end)
+            lastEquip = tick()
+        end
+    end
+end
+
+-- =============================
+-- TARGET SELECT (PRIORITY SHERIFF)
+-- =============================
+local function getTarget()
+    local sheriff, other
+    for _, p in ipairs(Players:GetPlayers()) do
+        if isValidTarget(p) then
+            local c = p.Character
+            if c:FindFirstChild("Gun") then
+                sheriff = p
+                break
+            else
+                other = other or p
+            end
+        end
+    end
+    return sheriff or other
+end
+
+-- =============================
+-- MULTI HIT BURST
+-- =============================
+local function hitTarget(knife, targetChar)
+    if tick() - lastHit < HIT_DELAY then return end
+
+    local parts = {
+        targetChar:FindFirstChild("Head"),
+        targetChar:FindFirstChild("UpperTorso"),
+        targetChar:FindFirstChild("HumanoidRootPart")
+    }
+
+    task.spawn(function()
+        for i = 1, BURST_HITS do
+            pcall(function()
+                knife:Activate()
+            end)
+
+            for _, part in ipairs(parts) do
+                if part then
+                    pcall(function()
+                        firetouchinterest(knife.Handle, part, 0)
+                        firetouchinterest(knife.Handle, part, 1)
+                    end)
+                end
+            end
+
+            task.wait(BURST_INTERVAL)
+        end
+    end)
+
+    lastHit = tick()
+end
+
+-- =============================
+-- MAIN LOOP
+-- =============================
+task.spawn(function()
+    while task.wait(LOOP_DELAY) do
+        if not getgenv().AutoKillMurder then continue end
+        if not isMurder() then continue end
+
+        autoEquipKnife()
+
+        local char = LocalPlayer.Character
+        local hrp = getHRP(char)
+        local knife = getKnife()
+        if not hrp or not knife then continue end
+
+        local target = getTarget()
+        if not target then continue end
+
+        local tChar = target.Character
+        local tHRP = getHRP(tChar)
+        if not tHRP or not isAlive(tChar) then continue end
+
+        local dist = (hrp.Position - tHRP.Position).Magnitude
+
+        if dist > TELEPORT_DISTANCE and tick() - lastTeleport > TELEPORT_COOLDOWN then
+            hrp.CFrame = CFrame.new(
+                tHRP.Position + (tHRP.CFrame.LookVector * TELEPORT_OFFSET),
+                tHRP.Position
+            )
+            lastTeleport = tick()
+        end
+
+        hrp.CFrame = CFrame.new(hrp.Position, tHRP.Position)
+
+        hitTarget(knife, tChar)
+    end
+end)
 
 
 -- ================================
@@ -932,247 +1120,662 @@ TeleportSection:NewToggle(
     end
 )
 
---==================================================
--- MM2 AUTO COIN FARM (FINAL CLEAN STABLE)
---==================================================
-
+-- =============================
+-- GLOBAL TOGGLE STATE
+-- =============================
 getgenv().AutoFarmEnabled = false
 
---========================
--- SERVICES
---========================
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
+-- =============================
+-- SAFE WORKSHOP CHECK (ANTI CRASH)
+-- =============================
+local workshop = workspace:FindFirstChild("Workshop")
+local interactive = nil
 
-local player = Players.LocalPlayer
-local PlayerGui = player:WaitForChild("PlayerGui")
-
---========================
--- SAFE NOTIFY
---========================
-local function notify(t, m, d)
-    pcall(function()
-        StarterGui:SetCore("SendNotification", {
-            Title = t,
-            Text = m,
-            Duration = d or 2
-        })
-    end)
+if not workshop then
+    warn("Workshop tidak ditemukan (GUI tetap dibuat)")
+else
+    interactive = workshop:FindFirstChild("Interactive")
+    if not interactive then
+        warn("Interactive tidak ada di Workshop (GUI tetap dibuat)")
+    end
 end
 
---========================
--- CHARACTER HELPERS
---========================
-local function getCharacter()
-    return player.Character or player.CharacterAdded:Wait()
+-- optional check, TIDAK MENGHENTIKAN SCRIPT
+task.spawn(function()
+    local workshop = workspace:FindFirstChild("Workshop")
+    if not workshop then
+        warn("Workshop tidak ditemukan")
+    end
+end)
+
+-----------------------------------------------------------------------------------------------
+-- State variables
+local Octree = loadstring(game:HttpGet("https://raw.githubusercontent.com/Sleitnick/rbxts-octo-tree/main/src/init.lua", true))()
+
+local rt = {} -- Removable table
+rt.__index = rt
+rt.octree = Octree.new()
+
+rt.RoundInProgress = false
+
+rt.Players = game.Players
+rt.player = game.Players.LocalPlayer
+
+rt.coinContainer = nil
+rt.radius = 500 :: number -- Radius to search for coins
+rt.walkspeed = 25 :: number -- speed at which you will go to a coin measured in walkspeed
+rt.touchedCoins = {} -- Table to track touched coins
+rt.positionChangeConnections = setmetatable({}, { __mode = "v" }) -- Weak table for connections
+rt.Added = nil :: RBXScriptConnection
+rt.Removing = nil :: RBXScriptConnection
+
+rt.UserDied = nil :: RBXScriptConnection
+
+local State = {
+    Action = "Action",
+    StandStillWait = "StandStillWait",
+    WaitingForRound = "WaitingForRound",
+    WaitingForRoundEnd = "WaitingForRoundEnd",
+    RespawnState = "RespawnState"
+}
+
+local CurrentState = State.WaitingForRound
+local LastPosition = nil
+local RoundInProgress = function()
+    return rt.RoundInProgress
+end
+local BagIsFull = false
+
+-- Constants
+rt.RoleTracker1 = nil :: RBXScriptConnection
+rt.RoleTracker2 = nil :: RBXScriptConnection
+rt.InvalidPos = nil :: RBXScriptConnection
+local IsMurderer = false
+local Working = false
+local ROUND_TIMER = workspace:WaitForChild("RoundTimerPart").SurfaceGui.Timer
+local PLAYER_GUI = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+function rt:Message(_Title, _Text, Time)
+	game:GetService("StarterGui"):SetCore("SendNotification", { Title = _Title, Text = _Text, Duration = Time })
 end
 
-local function getRoot()
-    local char = getCharacter()
-    return char and char:FindFirstChild("HumanoidRootPart")
+function rt:Character () : (Model)
+    return self.player.Character or self.player.CharacterAdded:Wait()
 end
 
---========================
--- ROUND CHECK (SAFE)
---========================
-local function inRound()
-    local gui = PlayerGui:FindFirstChild("MainGUI")
-    if not gui then return false end
-    local gameGui = gui:FindFirstChild("Game")
-    if not gameGui then return false end
-    return gameGui.Timer.Visible or gameGui.EarnedXP.Visible
+function rt:GetCharacterLoaded() : (Model)
+    repeat
+        task.wait(0.02)
+    until rt:Character() ~= nil
 end
 
---========================
--- MAP + COIN FINDER
---========================
-local function getMap()
+function rt:CheckIfPlayerIsInARound () : (boolean)
+    --check if player is in a round
+    --check by going to the players gui -> MainGui -> Game -> Timer.Visible
+    if not PLAYER_GUI:WaitForChild("MainGUI") then return false end
+
+    if PLAYER_GUI:WaitForChild("MainGUI").Game.Timer.Visible then
+        return true
+    end
+
+    --check by going to the players gui -> MainGui -> Game -> EarnedXP.Visible
+    if PLAYER_GUI:WaitForChild("MainGUI").Game.EarnedXP.Visible then
+        return true
+    end
+
+    return false
+end
+
+function rt:MainGUI () : (ScreenGui)
+    return self.player.PlayerGui.MainGUI or self.player.PlayerGui:WaitForChild("MainGUI")
+end
+
+function rt.Disconnect (connection:RBXScriptConnection)
+    if connection and connection.Connected then
+        connection:Disconnect()
+    end
+end
+
+function rt:Map()
     for _, v in ipairs(workspace:GetChildren()) do
         if v:IsA("Model") and v:FindFirstChild("Spawns") and v.Name ~= "Lobby" then
             return v
         end
     end
+    return nil
 end
 
---========================
--- OCTREE
---========================
-local Octree = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/Sleitnick/rbxts-octo-tree/main/src/init.lua",
-    true
-))()
+function rt:CheckIfGameInProgress () : (boolean)
+    if rt:Map() then return true end
+    return false
+end
 
---========================
--- RUNTIME STATE
---========================
-local rt = {
-    octree = Octree.new(),
-    touched = {},
-    coinContainer = nil,
-    radius = 500,
-    speed = 25
-}
+function rt:GetAlivePlayers (): (table | nil)
+    --get all players that are alive
+    local aliveplrs = setmetatable({}, {__mode = "v"})
+    local OldPos = self:Character():GetPivot()
+    local pos = CFrame.new(-121.995956, 134.462997, 46.4180717)
+    
+    if not rt:CheckIfGameInProgress() then return nil end
 
---========================
--- CLEANUP
---========================
-local function cleanup()
+    local isAlive = rt:CheckIfPlayerIsInARound()
+
+    if not isAlive then self:Character():PivotTo(pos) end
+
+    for _, v in pairs(rt.Players:GetPlayers()) do
+        local distance = (self:Character().PrimaryPart.Position - v.Character.PrimaryPart.Position).Magnitude
+        if isAlive then
+            if distance <= 500 then
+                table.insert(aliveplrs, v)
+            end
+        else
+            if distance > 500 then
+                table.insert(aliveplrs, v)
+            end
+        end
+    end
+
+    if not isAlive then self:Character():PivotTo(OldPos) end
+    
+    return aliveplrs
+end
+
+function rt:CheckIfPlayerWasInARound () : (boolean)
+    if self.player:GetAttribute("Alive") then
+        return true
+    end
+
+    return false
+end
+
+function rt:IsElite() : (boolean)
+    if self.player:GetAttribute("Elite") then
+        return true
+    end
+
+    return false
+end
+
+local function AutoFarmCleanUp()
+    if next(rt.positionChangeConnections) == nil then
+        return rt:Message("Info", "Nothing to clean", 1)
+    end
+
+    -- Clean up all connections and cached data
+    for _, connection in pairs(rt.positionChangeConnections) do
+        rt.Disconnect(connection)
+    end
+    rt.Disconnect(rt.Added)
+    rt.Disconnect(rt.Removing)
+
+    rt:Message("Info", "Autofarm CleanUp Success", 2)
+    table.clear(rt.touchedCoins)
+    table.clear(rt.positionChangeConnections)
     rt.octree:ClearAllNodes()
-    table.clear(rt.touched)
 end
 
---========================
--- COIN SYSTEM
---========================
-local function markCoin(coin)
-    rt.touched[coin] = true
+-- Function to check if a coin has been touched
+local function isCoinTouched(coin)
+    return rt.touchedCoins[coin]
+end
+
+-- Function to mark a coin as touched
+local function markCoinAsTouched(coin)
+    if not rt then return end
+    rt.touchedCoins[coin] = true
     local node = rt.octree:FindFirstNode(coin)
     if node then
         rt.octree:RemoveNode(node)
     end
 end
 
-local function populateCoins()
-    rt.octree:ClearAllNodes()
-
-    if not rt.coinContainer then return end
-
-    for _, d in ipairs(rt.coinContainer:GetDescendants()) do
-        if d:IsA("TouchTransmitter") then
-            local coin = d.Parent
-            if coin and not rt.touched[coin] then
-                rt.octree:CreateNode(coin.Position, coin)
+-- Function to track touch interactions
+local function setupTouchTracking(coin)
+    
+    local touchInterest = coin:FindFirstChildWhichIsA("TouchTransmitter")
+    if touchInterest then
+        local connection
+        connection = touchInterest.AncestryChanged:Connect(function(_, parent)
+            if not rt then connection:Disconnect() return end
+            if parent == nil then
+                -- TouchInterest removed; mark the coin as touched
+                markCoinAsTouched(coin)
+                rt.Disconnect(connection)
             end
-        end
+        end)
+        rt.positionChangeConnections[coin] = connection
     end
 end
 
---========================
--- MOVE FUNCTION
---========================
-local function moveTo(pos)
-    local root = getRoot()
-    if not root then return end
+local function setupPositionTracking(coin: MeshPart, LastPositonY: number)
+    local connection
+    connection = coin:GetPropertyChangedSignal("Position"):Connect(function()
+        -- Check if the Y position has changed
+        local currentY = coin.Position.Y
+        if LastPositonY and LastPositonY ~= currentY then
 
-    local start = root.Position
-    local dist = (start - pos).Magnitude
-    local dur = math.max(dist / rt.speed, 0.05)
-    local t0 = tick()
+            -- Remove the coin from the octree as it has been moved
+            markCoinAsTouched(coin)
 
-    while tick() - t0 < dur do
-        local rootNow = getRoot()
-        if not rootNow then break end
-        local a = math.clamp((tick() - t0) / dur, 0, 1)
-        rootNow.Parent:PivotTo(CFrame.new(start:Lerp(pos, a)))
-        RunService.Heartbeat:Wait()
+            rt.Disconnect(connection)
+            coin:Destroy()
+            return
+        end
+    end)
+    rt.positionChangeConnections[coin] = connection
+end
+
+local function moveToPositionSlowly(targetPosition: Vector3, duration: number)
+    local char = rt:Character()
+    if not char or not char.PrimaryPart then return end
+
+    local startPosition = char.PrimaryPart.Position
+    local startTime = tick()
+
+    while true do
+        if not char or not char.PrimaryPart then break end
+
+        local alpha = math.min((tick() - startTime) / duration, 1)
+        char:PivotTo(CFrame.new(startPosition:Lerp(targetPosition, alpha)))
+
+        if alpha >= 1 then break end
+        task.wait()
     end
 end
 
---========================
--- MAIN AUTOFARM LOOP
---========================
-local function collectCoins()
-    notify("AutoFarm", "Started", 1.5)
+-- Function to populate the Octree with coins
+local function populateOctree()
+    rt.octree:ClearAllNodes() -- Clear previous nodes
 
-    while getgenv().AutoFarmEnabled do
-        if not inRound() then
-            task.wait(1)
-            continue
-        end
-
-        local root = getRoot()
-        if not root then
-            task.wait(0.2)
-            continue
-        end
-
-        -- AUTO FIND / REBUILD COINS
-        if not rt.coinContainer or not rt.coinContainer.Parent then
-            local map = getMap()
-            rt.coinContainer = map and map:FindFirstChild("CoinContainer")
-            if rt.coinContainer then
-                populateCoins()
+    for _, descendant in pairs(rt.coinContainer:GetDescendants()) do
+        if descendant:IsA("TouchTransmitter") then --and descendant.Material == rt.Material then
+            local parentCoin = descendant.Parent
+            if not isCoinTouched(parentCoin) then
+                rt.octree:CreateNode(parentCoin.Position, parentCoin)
+                setupTouchTracking(parentCoin)
             end
+            setupPositionTracking(parentCoin, parentCoin.Position.Y)
+        end
+    end
+
+    rt.Added = rt.coinContainer.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA("TouchTransmitter") then --and descendant.Material == rt.Material then
+            local parentCoin = descendant.Parent
+            if not isCoinTouched(parentCoin) then
+                rt.octree:CreateNode(parentCoin.Position, parentCoin)
+                setupTouchTracking(parentCoin)
+                setupPositionTracking(parentCoin, parentCoin.Position.Y)
+            end
+        end
+    end)
+
+    rt.Removing = rt.coinContainer.DescendantRemoving:Connect(function(descendant)
+        if descendant:IsA("TouchTransmitter") and descendant.Parent.Name == "Coin_Server" then
+            local parentCoin = descendant.Parent
+            if isCoinTouched(parentCoin) then
+                markCoinAsTouched(parentCoin)
+            end
+        end
+    end)
+end
+
+local function ChangeState(State)
+    CurrentState = State
+end
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+-- Helper Functions
+
+local function CheckMurderer()
+    return IsMurderer
+end
+
+local function IsBagFull()
+    local playerGui = PLAYER_GUI:WaitForChild("MainGUI")
+    local coinText = playerGui.Game.CoinBags.Container.SnowToken.CurrencyFrame.Icon.Coins.Text
+    return tonumber(coinText) >= (rt:IsElite() and 50 or 40)
+end
+
+local function RespawnAndTeleportBack()
+    LastPosition = LastPosition ~= nil and LastPosition or rt:Character():GetPivot()
+    rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+    rt:GetCharacterLoaded()
+    task.wait(1)
+    
+    if rt:Character() then
+        if not RoundInProgress() then 
+            rt:GetCharacterLoaded()
+            ChangeState(State.WaitingForRound)
+            return
+        end
+
+        rt:GetCharacterLoaded()
+
+        -- PENGAMAN
+        if typeof(LastPosition) ~= "CFrame" then
+            warn("LastPosition bukan CFrame, reset posisi")
+            LastPosition = rt:Character():GetPivot()
+        end
+
+        rt:Character():PivotTo(LastPosition)
+    end
+end
+
+local function CollectCoins()
+    Working = true
+
+    -- Tunggu map valid
+    local map
+    repeat
+        task.wait(0.2)
+        map = rt:Map()
+    until map ~= nil and Working
+
+    if not Working then return end
+
+    rt.coinContainer = map:FindFirstChild("CoinContainer")
+    if not rt.coinContainer then
+        warn("CoinContainer tidak ditemukan")
+        return
+    end
+
+    populateOctree()
+
+    while CurrentState == State.Action and Working do
+        -- CEK BAG
+        if IsBagFull() then
+            rt:Message("Alert", "Bag is full!", 2)
+            BagIsFull = true
+            break
+        end
+
+        -- CEK CHARACTER
+        local char = rt:Character()
+        if not char then task.wait(0.3) continue end
+
+        local root = char.PrimaryPart
+        if not root then task.wait(0.3) continue end
+
+        -- AMBIL COIN TERDEKAT
+        local nearestList = rt.octree:GetNearest(root.Position, rt.radius, 1)
+        local nearestNode = nearestList and nearestList[1]
+
+        if not nearestNode or not nearestNode.Object then
             task.wait(0.5)
             continue
         end
 
-        local nearest = rt.octree:GetNearest(root.Position, rt.radius, 1)
-        if not nearest or not nearest[1] then
-            populateCoins()
-            task.wait(0.4)
+        local coin = nearestNode.Object
+
+        -- VALIDASI COIN
+        if not coin
+            or not coin.Parent
+            or not coin:IsA("BasePart")
+            or isCoinTouched(coin)
+        then
+            markCoinAsTouched(coin)
             continue
         end
 
-        local coin = nearest[1].Object
-        if not coin or not coin.Parent then
-            markCoin(coin)
-            continue
+        -- HITUNG GERAK
+        local targetPos = coin.Position
+        local distance = (root.Position - targetPos).Magnitude
+        local duration = math.max(distance / rt.walkspeed, 0.05)
+
+        -- GERAK
+        moveToPositionSlowly(targetPos, duration)
+
+        -- FINAL CHECK SEBELUM MARK
+        if coin and coin.Parent then
+            markCoinAsTouched(coin)
         end
 
-        moveTo(coin.Position)
-        markCoin(coin)
-
-        task.wait(0.1)
+        task.wait(0.15)
     end
 
-    cleanup()
-    notify("AutoFarm", "Stopped", 1.5)
+    AutoFarmCleanUp()
 end
 
---========================
--- GUI TOGGLE
---========================
-local gui = Instance.new("ScreenGui")
-gui.Name = "AutoFarmGui"
-gui.ResetOnSpawn = false
-gui.Parent = PlayerGui
-
-local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(0, 160, 0, 45)
-btn.Position = UDim2.new(0, 20, 0, 200)
-btn.BackgroundColor3 = Color3.fromRGB(60, 0, 90)
-btn.TextColor3 = Color3.new(1,1,1)
-btn.Font = Enum.Font.GothamBold
-btn.TextSize = 14
-btn.Text = "AUTOFARM : OFF"
-btn.Active = true
-btn.Draggable = true
-btn.Parent = gui
-
-btn.MouseButton1Click:Connect(function()
-    getgenv().AutoFarmEnabled = not getgenv().AutoFarmEnabled
-    btn.Text = getgenv().AutoFarmEnabled and "AUTOFARM : ON" or "AUTOFARM : OFF"
-
-    if getgenv().AutoFarmEnabled then
-        task.spawn(collectCoins)
-    end
-end)
-
---==================================================
--- ANTI IDLE / ANTI AFK (XENO SAFE)
---==================================================
-
-local Players = game:GetService("Players")
-local VirtualUser = game:GetService("VirtualUser")
-
-local player = Players.LocalPlayer
-
--- Roblox idle detector
-player.Idled:Connect(function()
-    VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+local function RespawnState()
+    rt:Message("Info", "Respawning...", 2)
+    rt:GetCharacterLoaded()
     task.wait(1)
-    VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-end)
+    if LastPosition == nil then 
+       local alive = rt:GetAlivePlayers()
 
-task.spawn(function()
-    while true do
-        task.wait(60) -- tiap 1 menit
-        local char = Players.LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if root then
-            root.CFrame = root.CFrame * CFrame.new(0, 0, 0.05)
+if alive and alive[1] and alive[1].Character and alive[1].Character.PrimaryPart then
+    LastPosition = alive[1].Character:GetPivot()
+else
+    LastPosition = rt:Character():GetPivot()
+end
+
+   if rt:Character() then
+    rt:GetCharacterLoaded()
+
+    -- PENGAMAN
+    if typeof(LastPosition) ~= "CFrame" then
+        warn("LastPosition bukan CFrame, reset posisi")
+        LastPosition = rt:Character():GetPivot()
+    end
+
+    rt:Character():PivotTo(LastPosition)
+    end
+ end
+
+    rt:Message("Info", "Respawned!", 2)
+
+    if not RoundInProgress() then
+        rt:Message("Info", "Round ended during respawn!", 2)
+        ChangeState(State.WaitingForRound)
+        return
+    end
+
+    ChangeState(State.Action)
+end
+
+-- Waiting State Logic
+local function WaitingForRound()
+    rt:Message("Info", "Waiting for round to start...", 2)
+    Working = false
+    --rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Seated)
+   -- Monitor round start
+    repeat
+        task.wait(0.5)
+    until RoundInProgress() and rt:CheckIfPlayerWasInARound()
+
+    rt:Message("Alert", "Round started!", 2)
+    ChangeState(State.Action)
+end
+
+local function waitForRoundEnd()
+    rt:Message("Info", "Waiting for round to end...", 2)
+    Working = false
+    --rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Seated)
+    -- Monitor round end
+    repeat
+        task.wait(1)
+    until not RoundInProgress()
+
+    rt:Message("Alert", "Round ended!", 2)
+    ChangeState(State.WaitingForRound)
+end
+
+local function StandStillWait()
+    rt:Message("Info", "Waiting for murderer to respawn", 2)
+    ChangeState("Nothing")
+    rt:GetCharacterLoaded()
+    task.wait(2)
+    ChangeState(State.WaitingForRound)
+end
+
+-- Action State Logic
+local function ActionState()
+    LastPosition = nil
+    if CheckMurderer() then
+        rt:Message("Info", "You are the Murderer! Collecting coins...", 2)
+        CollectCoins()
+    else
+        rt:Message("Info", "Logging position and respawning...", 2)
+        --if #game.Players:GetChildren() > 2 then RespawnAndTeleportBack(); CollectCoins() else CollectCoins() end
+        CollectCoins()
+    end
+
+    -- After collecting coins or if the round ends, return to waiting state
+    if BagIsFull or not RoundInProgress() then
+        if CheckMurderer() then
+            rt:Message("Info", "Returning to Waiting State...", 2)
+            BagIsFull, Working, rt.RoundInProgress = false, false, false
+            rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+        else
+            rt:Message("Info", "Returning to Waiting State...", 2)
+            BagIsFull, Working = false, false
+            rt:Character():FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Dead)
+            ChangeState(State.WaitingForRoundEnd)
+        end
+    end
+    
+end
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+rt.RoleTracker1 = rt.player.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("Tool") then
+        if descendant.Name == "Knife" then
+            IsMurderer = true
         end
     end
 end)
+
+rt.InvalidPos = workspace.DescendantAdded:Connect(function(descendant)
+    if not descendant:IsA("Model") then return end
+
+    if not descendant.Name:match("Glitch") and not descendant.Name:match("Invis") then
+        return
+    end
+
+    task.defer(function()
+        if descendant.Parent
+            and descendant.Parent ~= workspace:FindFirstChild("Lobby")
+            and descendant:IsDescendantOf(workspace)
+        then
+            descendant:Destroy()
+        end
+    end)
+end)
+
+ -- Monitor round start
+local LastText
+ROUND_TIMER:GetPropertyChangedSignal("Text"):Connect(function()
+    rt.RoundInProgress = true
+end)
+
+PLAYER_GUI.ChildAdded:Connect(function(child)
+    if child:IsA("Sound") then
+        rt.RoundInProgress = false
+        Working = false
+        ChangeState(State.WaitingForRound)
+    end
+end)
+
+rt.UserDied = rt.player.CharacterRemoving:Connect(function(character)
+    AutoFarmCleanUp()
+    LastText = ROUND_TIMER.Text
+    if CheckMurderer() then IsMurderer = false; LastPosition = nil; Working = false; rt.RoundInProgress = false return ChangeState(State.StandStillWait) end
+    
+    if not RoundInProgress() then IsMurderer = false; LastPosition = nil; Working = false; return ChangeState(State.WaitingForRound) end
+
+    task.wait(2)
+    if LastText == ROUND_TIMER.Text then LastPosition = nil; IsMurderer = false; rt.RoundInProgress = false; Working = false return ChangeState(State.WaitingForRound) end
+
+    if Working then
+        Working = false
+        IsMurderer = false
+        LastPosition = nil
+        ChangeState(State.RespawnState)
+    end
+end)
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+IsMurderer = rt.player.Backpack:FindFirstChild("Knife") and true or false  
+
+-- =============================
+-- TOGGLE GUI
+-- =============================
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "AutoFarmToggleGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 160, 0, 45)
+button.Position = UDim2.new(0, 20, 0, 200)
+button.BackgroundColor3 = Color3.fromRGB(60, 0, 90)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 14
+local constraint = Instance.new("UITextSizeConstraint")
+constraint.MinTextSize = 14
+constraint.MaxTextSize = 14
+constraint.Parent = button
+button.Text = "AUTOFARM : OFF"
+button.Parent = gui
+button.Active = true
+button.Draggable = true
+
+button.MouseButton1Click:Connect(function()
+    getgenv().AutoFarmEnabled = not getgenv().AutoFarmEnabled
+    button.Text = getgenv().AutoFarmEnabled and "AUTOFARM : ON" or "AUTOFARM : OFF"
+
+    if not getgenv().AutoFarmEnabled then
+        -- stop safely
+        Working = false
+        BagIsFull = false
+        AutoFarmCleanUp()
+        ChangeState(State.WaitingForRound)
+    end
+end)
+
+-- =============================
+-- MAIN LOOP (TOGGLE SAFE)
+-- =============================
+while true do
+    if getgenv().AutoFarmEnabled then
+        if CurrentState == State.WaitingForRound then
+            WaitingForRound()
+        elseif CurrentState == State.Action then
+            ActionState()
+        elseif CurrentState == State.WaitingForRoundEnd then
+            waitForRoundEnd()
+        elseif CurrentState == State.RespawnState then
+            RespawnState()
+        elseif CurrentState == State.StandStillWait then
+            StandStillWait()
+        end
+    else
+        task.wait(0.2) -- idle when OFF
+    end
+    task.wait()
+end
+
+---------------------------------------------------------------------------------------------------------
+--if the sound doesnt play when the murderer dies run getgenv().RoundInProgress = false  add it directly into the script
+
+----------------------------------------------------------
+-- ======================================
+-- ANTI AFK / IDLE
+-- ======================================
+player.Idled:Connect(function()
+    local vu = game:GetService("VirtualUser")
+    vu:CaptureController()
+    vu:ClickButton2(Vector2.new())
+end)
+
+print("✅ XieHub Loaded - Fly to Coin & Anti-AFK aktif")
